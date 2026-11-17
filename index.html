@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Haushalts-Instandhaltung (CMMS)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans pb-24">
+
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-screwdriver-wrench"></i> Haus-CMMS
+            </h1>
+            <button onclick="openAddModal()" class="bg-blue-500 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition shadow">
+                <i class="fa-solid fa-plus mr-1"></i> Neu
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-md mx-auto p-4 space-y-4">
+
+        <!-- Dashboard Stats -->
+        <div class="grid grid-cols-3 gap-3">
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-center">
+                <span class="block text-2xl font-bold text-slate-700" id="stat-total">0</span>
+                <span class="text-xs text-slate-400">Gesamt</span>
+            </div>
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-center">
+                <span class="block text-2xl font-bold text-amber-500" id="stat-due">0</span>
+                <span class="text-xs text-slate-400">Bald fällig</span>
+            </div>
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-center">
+                <span class="block text-2xl font-bold text-rose-500" id="stat-overdue">0</span>
+                <span class="text-xs text-slate-400">Überfällig</span>
+            </div>
+        </div>
+
+        <!-- Filter & Search -->
+        <div class="flex gap-2">
+            <input type="text" id="searchInput" placeholder="Suchen..." oninput="renderAssets()" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+            <select id="filterCategory" onchange="renderAssets()" class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                <option value="">Alle Bereiche</option>
+                <option value="Küche">Küche</option>
+                <option value="Bad">Bad</option>
+                <option value="Waschküche">Waschküche</option>
+                <option value="Allgemein">Allgemein</option>
+            </select>
+        </div>
+
+        <!-- Asset List -->
+        <div id="assetList" class="space-y-3">
+            <!-- Dynamisch generiert -->
+        </div>
+
+    </main>
+
+    <!-- Bottom Navigation / Tabs -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg">
+        <div class="max-w-md mx-auto flex justify-around py-3">
+            <button onclick="switchTab('assets')" id="nav-assets" class="text-blue-600 flex flex-col items-center text-xs font-medium">
+                <i class="fa-solid fa-list-check text-lg mb-1"></i> Assets
+            </button>
+            <button onclick="switchTab('history')" id="nav-history" class="text-slate-400 flex flex-col items-center text-xs font-medium">
+                <i class="fa-solid fa-clock-rotate-left text-lg mb-1"></i> Historie & Backup
+            </button>
+        </div>
+    </nav>
+
+    <!-- Modal: Asset Hinzufügen -->
+    <div id="addModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-xl">
+            <h2 class="text-lg font-bold">Neues Wartungs-Asset</h2>
+            <form id="addForm" onsubmit="saveAsset(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Bezeichnung</label>
+                    <input type="text" id="assetName" required class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="z.B. Kaffeemaschine entkalken">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Kategorie</label>
+                        <select id="assetCategory" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <option value="Küche">Küche</option>
+                            <option value="Bad">Bad</option>
+                            <option value="Waschküche">Waschküche</option>
+                            <option value="Allgemein">Allgemein</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Intervall (Tage)</label>
+                        <input type="number" id="assetInterval" required min="1" value="30" class="w-full px-3 py-2 border rounded-lg text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Letzte Wartung</label>
+                    <input type="date" id="assetLastDate" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium">Abbrechen</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript Logik -->
+    <script>
+        // Initialer Default-Datenbestand
+        const defaultAssets = [
+            { id: 1, name: "Flusensieb Waschmaschine reinigen", category: "Waschküche", interval: 30, lastDate: "2026-03-01", history: [] },
+            { id: 2, name: "Wasserkocher entkalken", category: "Küche", interval: 21, lastDate: "2026-03-10", history: [] },
+            { id: 3, name: "Zahnbürstenkopf wechseln", category: "Bad", interval: 90, lastDate: "2026-01-15", history: [] },
+            { id: 4, name: "Bettwäsche waschen", category: "Allgemein", interval: 14, lastDate: "2026-03-25", history: [] },
+            { id: 5, name: "Rauchmelder prüfen", category: "Allgemein", interval: 180, lastDate: "2025-11-01", history: [] }
+        ];
+
+        let assets = JSON.parse(localStorage.getItem('cmms_assets')) || defaultAssets;
+        let historyLog = JSON.parse(localStorage.getItem('cmms_history')) || [];
+        let currentTab = 'assets';
+
+        // --- Capacitor Push / Local Notifications Integration ---
+        async function initNotifications() {
+            // Prüfen, ob die Capacitor LocalNotifications API verfügbar ist (in der APK)
+            if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
+                const { LocalNotifications } = window.Capacitor.Plugins;
+                
+                // Berechtigung anfordern
+                const permStatus = await LocalNotifications.checkPermissions();
+                if (permStatus.display !== 'granted') {
+                    await LocalNotifications.requestPermissions();
+                }
+                
+                scheduleAllNotifications();
+            }
+        }
+
+        async function scheduleAllNotifications() {
+            if (!window.Capacitor || !window.Capacitor.Plugins.LocalNotifications) return;
+            const { LocalNotifications } = window.Capacitor.Plugins;
+
+            // Vorherige geplante Benachrichtigungen bereinigen, um Duplikate zu vermeiden
+            // (In einer echten App würden IDs gemappt werden)
+            
+            let notificationsList = [];
+            assets.forEach((asset, index) => {
+                const nextDate = getNextDueDate(asset.lastDate, asset.interval);
+                const triggerTime = new Date(nextDate);
+                triggerTime.setHours(9, 0, 0, 0); // Morgens um 9 Uhr benachrichtigen
+
+                // Nur planen, wenn das Datum in der Zukunft liegt
+                if (triggerTime > new Date()) {
+                    notificationsList.push({
+                        title: "Wartung fällig!",
+                        body: `Objekt "${asset.name}" ist fällig (${asset.category}).`,
+                        id: asset.id,
+                        schedule: { at: triggerTime },
+                        sound: null,
+                        smallIcon: 'ic_stat_icon_config_sample'
+                    });
+                }
+            });
+
+            if (notificationsList.length > 0) {
+                try {
+                    await LocalNotifications.schedule({ notifications: notificationsList });
+                } catch (e) {
+                    console.error("Fehler beim Planen der Benachrichtigungen:", e);
+                }
+            }
+        }
+
+        // Beim Start Datum vorbelegen
+        document.getElementById('assetLastDate').valueAsDate = new Date();
+
+        function saveData() {
+            localStorage.setItem('cmms_assets', JSON.stringify(assets));
+            localStorage.setItem('cmms_history', JSON.stringify(historyLog));
+            renderAssets();
+            // Benachrichtigungen aktualisieren
+            initNotifications();
+        }
+
+        function getNextDueDate(lastDateStr, intervalDays) {
+            const last = new Date(lastDateStr);
+            last.setDate(last.getDate() + parseInt(intervalDays));
+            return last;
+        }
+
+        function getDaysRemaining(nextDateStr) {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const next = new Date(nextDateStr);
+            next.setHours(0,0,0,0);
+            const diffTime = next - today;
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function renderAssets() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const category = document.getElementById('filterCategory').value;
+            const listEl = document.getElementById('assetList');
+
+            let total = assets.length;
+            let dueCount = 0;
+            let overdueCount = 0;
+
+            let html = '';
+
+            const filtered = assets.filter(a => {
+                const matchesSearch = a.name.toLowerCase().includes(search);
+                const matchesCat = !category || a.category === category;
+                return matchesSearch && matchesCat;
+            });
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm">Keine Einträge gefunden.</div>`;
+                updateStats(total, 0, 0);
+                return;
+            }
+
+            filtered.forEach(asset => {
+                const nextDateStr = getNextDueDate(asset.lastDate, asset.interval);
+                const daysLeft = getDaysRemaining(nextDateStr);
+
+                let badgeClass = "bg-emerald-100 text-emerald-700 border-emerald-200";
+                let statusText = `Fällig in ${daysLeft} Tagen`;
+                let progressBarColor = "bg-emerald-500";
+
+                if (daysLeft < 0) {
+                    overdueCount++;
+                    badgeClass = "bg-rose-100 text-rose-700 border-rose-200";
+                    statusText = `Überfällig seit ${Math.abs(daysLeft)} Tagen!`;
+                    progressBarColor = "bg-rose-500";
+                } else if (daysLeft <= 3) {
+                    dueCount++;
+                    badgeClass = "bg-amber-100 text-amber-700 border-amber-200";
+                    statusText = `Bald fällig (in ${daysLeft} Tagen)`;
+                    progressBarColor = "bg-amber-500";
+                }
+
+                // Fortschrittsbalken berechnen
+                const totalInterval = asset.interval;
+                const passedDays = totalInterval - daysLeft;
+                let progressPercent = Math.min(Math.max((passedDays / totalInterval) * 100, 0), 100);
+
+                html += `
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 space-y-3">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded">${asset.category}</span>
+                                <h3 class="font-semibold text-slate-800 mt-1">${asset.name}</h3>
+                            </div>
+                            <button onclick="deleteAsset(${asset.id})" class="text-slate-300 hover:text-rose-500 text-sm p-1"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                        
+                        <!-- Status Bar -->
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs">
+                                <span class="${badgeClass} px-2 py-0.5 rounded-full border font-medium">${statusText}</span>
+                                <span class="text-slate-400">Intervall: ${asset.interval} Tage</span>
+                            </div>
+                            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                <div class="${progressBarColor} h-full transition-all duration-500" style="width: ${progressPercent}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-2 border-t border-slate-50 text-xs text-slate-500">
+                            <span>Letzte Wartung: ${asset.lastDate}</span>
+                            <button onclick="performMaintenance(${asset.id})" class="bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1">
+                                <i class="fa-solid fa-check"></i> Wartung erledigt
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            listEl.innerHTML = html;
+            updateStats(total, dueCount, overdueCount);
+        }
+
+        function updateStats(total, due, overdue) {
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-due').innerText = due;
+            document.getElementById('stat-overdue').innerText = overdue;
+        }
+
+        function performMaintenance(id) {
+            const asset = assets.find(a => a.id === id);
+            if (!asset) return;
+
+            const todayStr = new Date().toISOString().split('T')[0];
+            
+            // In Historie eintragen
+            historyLog.unshift({
+                name: asset.name,
+                category: asset.category,
+                date: todayStr
+            });
+
+            asset.lastDate = todayStr;
+            saveData();
+        }
+
+        function deleteAsset(id) {
+            if (confirm("Möchten Sie diesen Eintrag wirklich löschen?")) {
+                assets = assets.filter(a => a.id !== id);
+                saveData();
+            }
+        }
+
+        function openAddModal() {
+            document.getElementById('addModal').classList.remove('hidden');
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').classList.add('hidden');
+        }
+
+        function saveAsset(e) {
+            e.preventDefault();
+            const newAsset = {
+                id: Date.now(),
+                name: document.getElementById('assetName').value,
+                category: document.getElementById('assetCategory').value,
+                interval: parseInt(document.getElementById('assetInterval').value),
+                lastDate: document.getElementById('assetLastDate').value,
+                history: []
+            };
+
+            assets.push(newAsset);
+            closeAddModal();
+            document.getElementById('addForm').reset();
+            document.getElementById('assetLastDate').valueAsDate = new Date();
+            saveData();
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            const main = document.querySelector('main');
+            const navAssets = document.getElementById('nav-assets');
+            const navHistory = document.getElementById('nav-history');
+
+            if (tab === 'assets') {
+                navAssets.className = "text-blue-600 flex flex-col items-center text-xs font-medium";
+                navHistory.className = "text-slate-400 flex flex-col items-center text-xs font-medium";
+                main.innerHTML = `
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-center">
+                            <span class="block text-2xl font-bold text-slate-700" id="stat-total">0</span>
+                            <span class="text-xs text-slate-400">Gesamt</span>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-center">
+                            <span class="block text-2xl font-bold text-amber-500" id="stat-due">0</span>
+                            <span class="text-xs text-slate-400">Bald fällig</span>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-center">
+                            <span class="block text-2xl font-bold text-rose-500" id="stat-overdue">0</span>
+                            <span class="text-xs text-slate-400">Überfällig</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="searchInput" placeholder="Suchen..." oninput="renderAssets()" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                        <select id="filterCategory" onchange="renderAssets()" class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                            <option value="">Alle Bereiche</option>
+                            <option value="Küche">Küche</option>
+                            <option value="Bad">Bad</option>
+                            <option value="Waschküche">Waschküche</option>
+                            <option value="Allgemein">Allgemein</option>
+                        </select>
+                    </div>
+                    <div id="assetList" class="space-y-3"></div>
+                `;
+                renderAssets();
+            } else {
+                navHistory.className = "text-blue-600 flex flex-col items-center text-xs font-medium";
+                navAssets.className = "text-slate-400 flex flex-col items-center text-xs font-medium";
+                
+                let histHtml = '<h2 class="font-bold text-slate-700 mb-2">Service-Protokoll</h2><div class="space-y-2">';
+                if (historyLog.length === 0) {
+                    histHtml += '<p class="text-slate-400 text-sm">Noch keine Wartungen durchgeführt.</p>';
+                } else {
+                    historyLog.forEach(h => {
+                        histHtml += `
+                            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center text-sm">
+                                <div>
+                                    <p class="font-semibold text-slate-800">${h.name}</p>
+                                    <span class="text-xs text-slate-400">${h.category}</span>
+                                </div>
+                                <span class="text-xs font-medium bg-emerald-50 text-emerald-600 px-2 py-1 rounded">${h.date}</span>
+                            </div>
+                        `;
+                    });
+                }
+                histHtml += '</div>';
+
+                // Backup Section
+                histHtml += `
+                    <div class="mt-6 pt-6 border-t border-slate-200 space-y-3">
+                        <h2 class="font-bold text-slate-700">Daten-Sicherung</h2>
+                        <div class="flex gap-2">
+                            <button onclick="exportData()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-lg text-xs font-medium">Export (.json)</button>
+                            <label class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-lg text-xs font-medium text-center cursor-pointer">
+                                Import <input type="file" onchange="importData(event)" class="hidden" accept=".json">
+                            </label>
+                        </div>
+                    </div>
+                `;
+                main.innerHTML = histHtml;
+            }
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ assets, historyLog }));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", "haushalt_cmms_backup.json");
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        }
+
+        function importData(event) {
+            const fileReader = new FileReader();
+            if (event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0], "UTF-8");
+                fileReader.onload = e => {
+                    try {
+                        const parsed = JSON.parse(e.target.result);
+                        if (parsed.assets) assets = parsed.assets;
+                        if (parsed.historyLog) historyLog = parsed.historyLog;
+                        saveData();
+                        alert("Backup erfolgreich eingespielt!");
+                        switchTab('assets');
+                    } catch (err) {
+                        alert("Fehler beim Lesen der Backup-Datei.");
+                    }
+                };
+            }
+        }
+
+        // App Initialisierung beim Laden
+        window.addEventListener('DOMContentLoaded', () => {
+            renderAssets();
+            initNotifications();
+        });
+    </script>
+</body>
+</html>
